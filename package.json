@@ -1,0 +1,26 @@
+{
+  "name": "rayhan-job-alert-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Daily Telegram bot that collects remote junior/entry-level dev jobs, filters and scores them, and posts the top 50 to a Telegram channel at 08:30 Asia/Dhaka.",
+  "type": "module",
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/index.js",
+    "dry-run": "npm run build && node dist/index.js --dry-run",
+    "test": "npm run typecheck && npm run build && node scripts/telegram-selftest.mjs && node dist/index.js --dry-run",
+    "test:telegram": "npm run build && node scripts/telegram-selftest.mjs"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  }
+}

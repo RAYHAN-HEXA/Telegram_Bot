@@ -1,0 +1,69 @@
+name: Daily Job Alert
+
+on:
+  schedule:
+    # 08:30 Asia/Dhaka (Bangladesh, UTC+6) === 02:30 UTC
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run - fetch/filter/score only, do not send to Telegram'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-job-alert
+  cancel-in-progress: false
+
+jobs:
+  alert:
+    name: Collect and send job digest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (TypeScript)
+        run: npm run build
+
+      - name: Restore posted-jobs store
+        uses: actions/cache/restore@v4
+        with:
+          path: data/posted-jobs.json
+          key: posted-jobs-${{ github.run_id }}
+          restore-keys: |
+            posted-jobs-
+
+      - name: Run bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DRY_RUN: ${{ inputs.dry_run == 'true' }}
+          STORAGE_FILE: ./data/posted-jobs.json
+          TZ: Asia/Dhaka
+        run: node dist/index.js
+
+      - name: Persist posted-jobs store
+        if: ${{ always() && hashFiles('data/posted-jobs.json') != '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: data/posted-jobs.json
+          key: posted-jobs-${{ github.run_id }}
